@@ -1248,7 +1248,7 @@ static struct usb_cdc_ncm_ndp32 *cdc_ncm_ndp32(struct cdc_ncm_ctx *ctx,
 		ndp32 = ctx->delayed_ndp32;
 
 	ndp32->dwSignature = sign;
-	ndp32->wLength = cpu_to_le32(sizeof(struct usb_cdc_ncm_ndp32) +
+	ndp32->wLength = cpu_to_le16(sizeof(struct usb_cdc_ncm_ndp32) +
 				     sizeof(struct usb_cdc_ncm_dpe32));
 	return ndp32;
 }
