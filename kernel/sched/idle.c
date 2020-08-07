@@ -54,27 +54,35 @@ __setup("hlt", cpu_idle_nopoll_setup);
 
 static noinline int __cpuidle cpu_idle_poll(void)
 {
-	rcu_idle_enter();
-	trace_cpu_idle_rcuidle(0, smp_processor_id());
-	local_irq_enable();
+	trace_cpu_idle(0, smp_processor_id());
 	stop_critical_timings();
+	rcu_idle_enter();
+	local_irq_enable();
 
 	while (!tif_need_resched() &&
-		(cpu_idle_force_poll || tick_check_broadcast_expired() ||
-		is_reserved(smp_processor_id())))
+	       (cpu_idle_force_poll || tick_check_broadcast_expired()))
 		cpu_relax();
-	start_critical_timings();
-	trace_cpu_idle_rcuidle(PWR_EVENT_EXIT, smp_processor_id());
+
 	rcu_idle_exit();
+	start_critical_timings();
+	trace_cpu_idle(PWR_EVENT_EXIT, smp_processor_id());
 
 	return 1;
 }
 
 /* Weak implementations for optional arch specific functions */
-void __weak arch_cpu_idle_prepare(void) { }
-void __weak arch_cpu_idle_enter(void) { }
-void __weak arch_cpu_idle_exit(void) { }
-void __weak arch_cpu_idle_dead(void) { }
+void __weak arch_cpu_idle_prepare(void)
+{
+}
+void __weak arch_cpu_idle_enter(void)
+{
+}
+void __weak arch_cpu_idle_exit(void)
+{
+}
+void __weak arch_cpu_idle_dead(void)
+{
+}
 void __weak arch_cpu_idle(void)
 {
 	cpu_idle_force_poll = 1;
@@ -92,13 +100,15 @@ void __cpuidle default_idle_call(void)
 		local_irq_enable();
 	} else {
 		stop_critical_timings();
+		rcu_idle_enter();
 		arch_cpu_idle();
+		rcu_idle_exit();
 		start_critical_timings();
 	}
 }
 
 static int call_cpuidle(struct cpuidle_driver *drv, struct cpuidle_device *dev,
-		      int next_state)
+			int next_state)
 {
 	/*
 	 * The idle task must be scheduled, it is pointless to go to idle, just
@@ -150,7 +160,6 @@ static void cpuidle_idle_call(void)
 
 	if (cpuidle_not_available(drv, dev)) {
 		tick_nohz_idle_stop_tick();
-		rcu_idle_enter();
 
 		default_idle_call();
 		goto exit_idle;
@@ -168,19 +177,14 @@ static void cpuidle_idle_call(void)
 
 	if (idle_should_enter_s2idle() || dev->use_deepest_state) {
 		if (idle_should_enter_s2idle()) {
-			rcu_idle_enter();
-
 			entered_state = cpuidle_enter_s2idle(drv, dev);
 			if (entered_state > 0) {
 				local_irq_enable();
 				goto exit_idle;
 			}
-
-			rcu_idle_exit();
 		}
 
 		tick_nohz_idle_stop_tick();
-		rcu_idle_enter();
 
 		next_state = cpuidle_find_deepest_state(drv, dev);
 		call_cpuidle(drv, dev, next_state);
@@ -197,8 +201,6 @@ static void cpuidle_idle_call(void)
 		else
 			tick_nohz_idle_retain_tick();
 
-		rcu_idle_enter();
-
 		entered_state = call_cpuidle(drv, dev, next_state);
 		/*
 		 * Give the governor an opportunity to reflect on the outcome
@@ -214,8 +216,6 @@ exit_idle:
 	 */
 	if (WARN_ON_ONCE(irqs_disabled()))
 		local_irq_enable();
-
-	rcu_idle_exit();
 }
 
 /*
@@ -259,7 +259,7 @@ static void do_idle(void)
 		 * idle as we know that the IPI is going to arrive right away.
 		 */
 		if (cpu_idle_force_poll || tick_check_broadcast_expired() ||
-				is_reserved(smp_processor_id())) {
+		    is_reserved(smp_processor_id())) {
 			tick_nohz_idle_restart_tick();
 			cpu_idle_poll();
 		} else {
@@ -296,7 +296,7 @@ static void do_idle(void)
 bool cpu_in_idle(unsigned long pc)
 {
 	return pc >= (unsigned long)__cpuidle_text_start &&
-		pc < (unsigned long)__cpuidle_text_end;
+	       pc < (unsigned long)__cpuidle_text_end;
 }
 
 struct idle_timer {
@@ -336,7 +336,8 @@ void play_idle(unsigned long duration_ms)
 	it.done = 0;
 	hrtimer_init_on_stack(&it.timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	it.timer.function = idle_inject_timer_fn;
-	hrtimer_start(&it.timer, ms_to_ktime(duration_ms), HRTIMER_MODE_REL_PINNED);
+	hrtimer_start(&it.timer, ms_to_ktime(duration_ms),
+		      HRTIMER_MODE_REL_PINNED);
 
 	while (!READ_ONCE(it.done))
 		do_idle();
@@ -377,9 +378,8 @@ void cpu_startup_entry(enum cpuhp_state state)
  */
 
 #ifdef CONFIG_SMP
-static int
-select_task_rq_idle(struct task_struct *p, int cpu, int sd_flag, int flags,
-		    int sibling_count_hint)
+static int select_task_rq_idle(struct task_struct *p, int cpu, int sd_flag,
+			       int flags, int sibling_count_hint)
 {
 	return task_cpu(p); /* IDLE tasks as never migrated */
 }
@@ -388,13 +388,15 @@ select_task_rq_idle(struct task_struct *p, int cpu, int sd_flag, int flags,
 /*
  * Idle tasks are unconditionally rescheduled:
  */
-static void check_preempt_curr_idle(struct rq *rq, struct task_struct *p, int flags)
+static void check_preempt_curr_idle(struct rq *rq, struct task_struct *p,
+				    int flags)
 {
 	resched_curr(rq);
 }
 
-static struct task_struct *
-pick_next_task_idle(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
+static struct task_struct *pick_next_task_idle(struct rq *rq,
+					       struct task_struct *prev,
+					       struct rq_flags *rf)
 {
 	put_prev_task(rq, prev);
 	update_idle_core(rq);
@@ -407,8 +409,7 @@ pick_next_task_idle(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
  * It is not legal to sleep in the idle task - print a warning
  * message if some code attempts to do it:
  */
-static void
-dequeue_task_idle(struct rq *rq, struct task_struct *p, int flags)
+static void dequeue_task_idle(struct rq *rq, struct task_struct *p, int flags)
 {
 	raw_spin_unlock_irq(&rq->lock);
 	printk(KERN_ERR "bad: scheduling from the idle thread!\n");
@@ -441,13 +442,13 @@ static void switched_to_idle(struct rq *rq, struct task_struct *p)
 	BUG();
 }
 
-static void
-prio_changed_idle(struct rq *rq, struct task_struct *p, int oldprio)
+static void prio_changed_idle(struct rq *rq, struct task_struct *p, int oldprio)
 {
 	BUG();
 }
 
-static unsigned int get_rr_interval_idle(struct rq *rq, struct task_struct *task)
+static unsigned int get_rr_interval_idle(struct rq *rq,
+					 struct task_struct *task)
 {
 	return 0;
 }
@@ -464,24 +465,24 @@ const struct sched_class idle_sched_class = {
 	/* no enqueue/yield_task for idle tasks */
 
 	/* dequeue is not valid, we print a debug message there: */
-	.dequeue_task		= dequeue_task_idle,
+	.dequeue_task = dequeue_task_idle,
 
-	.check_preempt_curr	= check_preempt_curr_idle,
+	.check_preempt_curr = check_preempt_curr_idle,
 
-	.pick_next_task		= pick_next_task_idle,
-	.put_prev_task		= put_prev_task_idle,
+	.pick_next_task = pick_next_task_idle,
+	.put_prev_task = put_prev_task_idle,
 
 #ifdef CONFIG_SMP
-	.select_task_rq		= select_task_rq_idle,
-	.set_cpus_allowed	= set_cpus_allowed_common,
+	.select_task_rq = select_task_rq_idle,
+	.set_cpus_allowed = set_cpus_allowed_common,
 #endif
 
-	.set_curr_task          = set_curr_task_idle,
-	.task_tick		= task_tick_idle,
+	.set_curr_task = set_curr_task_idle,
+	.task_tick = task_tick_idle,
 
-	.get_rr_interval	= get_rr_interval_idle,
+	.get_rr_interval = get_rr_interval_idle,
 
-	.prio_changed		= prio_changed_idle,
-	.switched_to		= switched_to_idle,
-	.update_curr		= update_curr_idle,
+	.prio_changed = prio_changed_idle,
+	.switched_to = switched_to_idle,
+	.update_curr = update_curr_idle,
 };
