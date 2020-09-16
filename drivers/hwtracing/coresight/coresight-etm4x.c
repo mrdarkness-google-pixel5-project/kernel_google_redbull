@@ -39,17 +39,15 @@
 static int boot_enable;
 module_param_named(boot_enable, boot_enable, int, S_IRUGO);
 
-#define PARAM_PM_SAVE_FIRMWARE	  0 /* save self-hosted state as per firmware */
-#define PARAM_PM_SAVE_NEVER	  1 /* never save any state */
+#define PARAM_PM_SAVE_FIRMWARE 0 /* save self-hosted state as per firmware */
+#define PARAM_PM_SAVE_NEVER 1 /* never save any state */
 #define PARAM_PM_SAVE_SELF_HOSTED 2 /* save self-hosted state only */
 
 static int pm_save_enable = PARAM_PM_SAVE_FIRMWARE;
 module_param(pm_save_enable, int, 0444);
 MODULE_PARM_DESC(pm_save_enable,
-	"Save/restore state on power down: 1 = never, 2 = self-hosted");
+		 "Save/restore state on power down: 1 = never, 2 = self-hosted");
 
-/* The number of ETMv4 currently registered */
-static int etm4_count;
 static struct etmv4_drvdata *etmdrvdata[NR_CPUS];
 static void etm4_set_default_config(struct etmv4_config *config);
 static int etm4_set_event_filters(struct etmv4_drvdata *drvdata,
@@ -139,10 +137,8 @@ static int etm4_enable_hw(struct etmv4_drvdata *drvdata)
 	writel_relaxed(drvdata->trcid, drvdata->base + TRCTRACEIDR);
 	writel_relaxed(config->vinst_ctrl, drvdata->base + TRCVICTLR);
 	writel_relaxed(config->viiectlr, drvdata->base + TRCVIIECTLR);
-	writel_relaxed(config->vissctlr,
-		       drvdata->base + TRCVISSCTLR);
-	writel_relaxed(config->vipcssctlr,
-		       drvdata->base + TRCVIPCSSCTLR);
+	writel_relaxed(config->vissctlr, drvdata->base + TRCVISSCTLR);
+	writel_relaxed(config->vipcssctlr, drvdata->base + TRCVIPCSSCTLR);
 	for (i = 0; i < drvdata->nrseqstate - 1; i++)
 		writel_relaxed(config->seq_ctrl[i],
 			       drvdata->base + TRCSEQEVRn(i));
@@ -197,8 +193,9 @@ static int etm4_enable_hw(struct etmv4_drvdata *drvdata)
 		 * Request to keep the trace unit powered and also
 		 * emulation of powerdown
 		 */
-		writel_relaxed(readl_relaxed(drvdata->base + TRCPDCR)
-				| TRCPDCR_PU, drvdata->base + TRCPDCR);
+		writel_relaxed(readl_relaxed(drvdata->base + TRCPDCR) |
+				       TRCPDCR_PU,
+			       drvdata->base + TRCPDCR);
 	}
 
 	/* Enable the trace unit */
@@ -296,19 +293,19 @@ static int etm4_config_timestamp_event(struct etmv4_drvdata *drvdata)
 	config->cntrldvr[ctridx] = 1;
 
 	/* Set the trace counter control register */
-	val =  0x1 << 16	|  /* Bit 16, reload counter automatically */
-	       0x0 << 7		|  /* Select single resource selector */
-	       0x1;		   /* Resource selector 1, i.e always true */
+	val = 0x1 << 16 | /* Bit 16, reload counter automatically */
+	      0x0 << 7 | /* Select single resource selector */
+	      0x1; /* Resource selector 1, i.e always true */
 
 	config->cntr_ctrl[ctridx] = val;
 
-	val = 0x2 << 16		| /* Group 0b0010 - Counter and sequencers */
-	      counter << 0;	  /* Counter to use */
+	val = 0x2 << 16 | /* Group 0b0010 - Counter and sequencers */
+	      counter << 0; /* Counter to use */
 
 	config->res_ctrl[rselector] = val;
 
-	val = 0x0 << 7		| /* Select single resource selector */
-	      rselector;	  /* Resource selector */
+	val = 0x0 << 7 | /* Select single resource selector */
+	      rselector; /* Resource selector */
 
 	config->ts_ctrl = val;
 
@@ -419,8 +416,8 @@ static int etm4_enable_sysfs(struct coresight_device *csdev)
 	 * ensures that register writes occur when cpu is powered.
 	 */
 	arg.drvdata = drvdata;
-	ret = smp_call_function_single(drvdata->cpu,
-				       etm4_enable_hw_smp_call, &arg, 1);
+	ret = smp_call_function_single(drvdata->cpu, etm4_enable_hw_smp_call,
+				       &arg, 1);
 	if (!ret)
 		ret = arg.rc;
 	if (!ret)
@@ -432,8 +429,8 @@ static int etm4_enable_sysfs(struct coresight_device *csdev)
 	return ret;
 }
 
-static int etm4_enable(struct coresight_device *csdev,
-		       struct perf_event *event, u32 mode)
+static int etm4_enable(struct coresight_device *csdev, struct perf_event *event,
+		       u32 mode)
 {
 	int ret;
 	u32 val;
@@ -577,14 +574,14 @@ static void etm4_disable(struct coresight_device *csdev,
 }
 
 static const struct coresight_ops_source etm4_source_ops = {
-	.cpu_id		= etm4_cpu_id,
-	.trace_id	= etm4_trace_id,
-	.enable		= etm4_enable,
-	.disable	= etm4_disable,
+	.cpu_id = etm4_cpu_id,
+	.trace_id = etm4_trace_id,
+	.enable = etm4_enable,
+	.disable = etm4_disable,
 };
 
 static const struct coresight_ops etm4_cs_ops = {
-	.source_ops	= &etm4_source_ops,
+	.source_ops = &etm4_source_ops,
 };
 
 static void etm4_init_arch_data(void *info)
@@ -784,7 +781,7 @@ static u64 etm4_get_ns_access_type(struct etmv4_config *config)
 	 */
 	if (!is_kernel_in_hyp_mode()) {
 		/* Stay away from hypervisor mode for non-VHE */
-		access_type =  ETM_EXLEVEL_NS_HYP;
+		access_type = ETM_EXLEVEL_NS_HYP;
 		if (config->mode & ETM_MODE_EXCL_KERN)
 			access_type |= ETM_EXLEVEL_NS_OS;
 	} else if (config->mode & ETM_MODE_EXCL_KERN) {
@@ -805,15 +802,14 @@ static u64 etm4_get_access_type(struct etmv4_config *config)
 	 * EXLEVEL_S, bits[11:8], don't trace anything happening
 	 * in secure state.
 	 */
-	access_type |= (ETM_EXLEVEL_S_APP	|
-			ETM_EXLEVEL_S_OS	|
-			ETM_EXLEVEL_S_HYP);
+	access_type |=
+		(ETM_EXLEVEL_S_APP | ETM_EXLEVEL_S_OS | ETM_EXLEVEL_S_HYP);
 
 	return access_type;
 }
 
-static void etm4_set_comparator_filter(struct etmv4_config *config,
-				       u64 start, u64 stop, int comparator)
+static void etm4_set_comparator_filter(struct etmv4_config *config, u64 start,
+				       u64 stop, int comparator)
 {
 	u64 access_type = etm4_get_access_type(config);
 
@@ -845,9 +841,8 @@ static void etm4_set_comparator_filter(struct etmv4_config *config,
 	config->viiectlr |= BIT(comparator / 2);
 }
 
-static void etm4_set_start_stop_filter(struct etmv4_config *config,
-				       u64 address, int comparator,
-				       enum etm_addr_type type)
+static void etm4_set_start_stop_filter(struct etmv4_config *config, u64 address,
+				       int comparator, enum etm_addr_type type)
 {
 	int shift;
 	u64 access_type = etm4_get_access_type(config);
@@ -877,8 +872,7 @@ static void etm4_set_default_filter(struct etmv4_config *config)
 	start = 0x0;
 	stop = ~0x0;
 
-	etm4_set_comparator_filter(config, start, stop,
-				   ETM_DEFAULT_ADDR_COMP);
+	etm4_set_comparator_filter(config, start, stop, ETM_DEFAULT_ADDR_COMP);
 
 	/*
 	 * TRCVICTLR::SSSTATUS == 1, the start-stop logic is
@@ -981,8 +975,7 @@ static int etm4_set_event_filters(struct etmv4_drvdata *drvdata,
 
 		switch (type) {
 		case ETM_ADDR_TYPE_RANGE:
-			etm4_set_comparator_filter(config,
-						   filter->start_addr,
+			etm4_set_comparator_filter(config, filter->start_addr,
 						   filter->stop_addr,
 						   comparator);
 			/*
@@ -998,12 +991,12 @@ static int etm4_set_event_filters(struct etmv4_drvdata *drvdata,
 		case ETM_ADDR_TYPE_STOP:
 			/* Get the right start or stop address */
 			address = (type == ETM_ADDR_TYPE_START ?
-				   filter->start_addr :
-				   filter->stop_addr);
+					   filter->start_addr :
+					   filter->stop_addr);
 
 			/* Configure comparator */
-			etm4_set_start_stop_filter(config, address,
-						   comparator, type);
+			etm4_set_start_stop_filter(config, address, comparator,
+						   type);
 
 			/*
 			 * If filters::ssstatus == 1, trace acquisition was
@@ -1030,7 +1023,6 @@ static int etm4_set_event_filters(struct etmv4_drvdata *drvdata,
 
 	goto out;
 
-
 default_filter:
 	etm4_set_default_filter(config);
 
@@ -1054,8 +1046,8 @@ void etm4_config_trace_mode(struct etmv4_config *config)
 
 	addr_acc = config->addr_acc[ETM_DEFAULT_ADDR_COMP];
 	/* clear default config */
-	addr_acc &= ~(ETM_EXLEVEL_NS_APP | ETM_EXLEVEL_NS_OS |
-		      ETM_EXLEVEL_NS_HYP);
+	addr_acc &=
+		~(ETM_EXLEVEL_NS_APP | ETM_EXLEVEL_NS_OS | ETM_EXLEVEL_NS_HYP);
 
 	addr_acc |= etm4_get_ns_access_type(config);
 
@@ -1126,8 +1118,8 @@ static int etm4_cpu_save(struct etmv4_drvdata *drvdata)
 	etm4_os_lock(drvdata);
 
 	/* wait for TRCSTATR.PMSTABLE to go up */
-	if (coresight_timeout(drvdata->base, TRCSTATR,
-			      TRCSTATR_PMSTABLE_BIT, 1)) {
+	if (coresight_timeout(drvdata->base, TRCSTATR, TRCSTATR_PMSTABLE_BIT,
+			      1)) {
 		dev_err(etm_dev,
 			"timeout while waiting for PM Stable Status\n");
 		etm4_os_unlock(drvdata);
@@ -1225,8 +1217,7 @@ static int etm4_cpu_save(struct etmv4_drvdata *drvdata)
 	 * potentially save power on systems that respect the TRCPDCR_PU
 	 * despite requesting software to save/restore state.
 	 */
-	writel_relaxed((state->trcpdcr & ~TRCPDCR_PU),
-			drvdata->base + TRCPDCR);
+	writel_relaxed((state->trcpdcr & ~TRCPDCR_PU), drvdata->base + TRCPDCR);
 
 out:
 	CS_LOCK(drvdata->base);
@@ -1295,8 +1286,7 @@ static void etm4_cpu_restore(struct etmv4_drvdata *drvdata)
 	}
 
 	for (i = 0; i < drvdata->nr_addr_cmp * 2; i++) {
-		writeq_relaxed(state->trcacvr[i],
-			       drvdata->base + TRCACVRn(i));
+		writeq_relaxed(state->trcacvr[i], drvdata->base + TRCACVRn(i));
 		writeq_relaxed(state->trcacatr[i],
 			       drvdata->base + TRCACATRn(i));
 	}
@@ -1374,28 +1364,25 @@ static struct notifier_block etm4_cpu_pm_nb = {
 	.notifier_call = etm4_cpu_pm_notify,
 };
 
-/* Setup PM. Called with cpus locked. Deals with error conditions and counts */
-static int etm4_pm_setup_cpuslocked(void)
+/* Setup PM. Deals with error conditions and counts */
+static int __init etm4_pm_setup(void)
 {
 	int ret;
 
-	if (etm4_count++)
-		return 0;
-
 	ret = cpu_pm_register_notifier(&etm4_cpu_pm_nb);
 	if (ret)
-		goto reduce_count;
+		return ret;
 
-	ret = cpuhp_setup_state_nocalls_cpuslocked(CPUHP_AP_ARM_CORESIGHT_STARTING,
-						   "arm/coresight4:starting",
-						   etm4_starting_cpu, etm4_dying_cpu);
+	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ARM_CORESIGHT_STARTING,
+					"arm/coresight4:starting",
+					etm4_starting_cpu, etm4_dying_cpu);
 
 	if (ret)
 		goto unregister_notifier;
 
-	ret = cpuhp_setup_state_nocalls_cpuslocked(CPUHP_AP_ONLINE_DYN,
-						   "arm/coresight4:online",
-						   etm4_online_cpu, NULL);
+	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
+					"arm/coresight4:online",
+					etm4_online_cpu, NULL);
 
 	/* HP dyn state ID returned in ret on success */
 	if (ret > 0) {
@@ -1404,21 +1391,15 @@ static int etm4_pm_setup_cpuslocked(void)
 	}
 
 	/* failed dyn state - remove others */
-	cpuhp_remove_state_nocalls_cpuslocked(CPUHP_AP_ARM_CORESIGHT_STARTING);
+	cpuhp_remove_state_nocalls(CPUHP_AP_ARM_CORESIGHT_STARTING);
 
 unregister_notifier:
 	cpu_pm_unregister_notifier(&etm4_cpu_pm_nb);
-
-reduce_count:
-	--etm4_count;
 	return ret;
 }
 
-static void etm4_pm_clear(void)
+static void __init etm4_pm_clear(void)
 {
-	if (--etm4_count != 0)
-		return;
-
 	cpu_pm_unregister_notifier(&etm4_cpu_pm_nb);
 	cpuhp_remove_state_nocalls(CPUHP_AP_ARM_CORESIGHT_STARTING);
 	if (hp_online) {
@@ -1454,11 +1435,12 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 
 	if (pm_save_enable == PARAM_PM_SAVE_FIRMWARE)
 		pm_save_enable = coresight_loses_context_with_cpu(dev) ?
-			       PARAM_PM_SAVE_SELF_HOSTED : PARAM_PM_SAVE_NEVER;
+					 PARAM_PM_SAVE_SELF_HOSTED :
+					 PARAM_PM_SAVE_NEVER;
 
 	if (pm_save_enable != PARAM_PM_SAVE_NEVER) {
-		drvdata->save_state = devm_kmalloc(dev,
-				sizeof(struct etmv4_save_state), GFP_KERNEL);
+		drvdata->save_state = devm_kmalloc(
+			dev, sizeof(struct etmv4_save_state), GFP_KERNEL);
 		if (!drvdata->save_state)
 			return -ENOMEM;
 	}
@@ -1479,8 +1461,8 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 	}
 
 	cpus_read_lock();
-	ret = smp_call_function_single(drvdata->cpu,
-					etm4_init_arch_data, drvdata, 1);
+	ret = smp_call_function_single(drvdata->cpu, etm4_init_arch_data,
+				       drvdata, 1);
 	if (ret) {
 		dev_err(dev, "ETM arch init failed\n");
 		cpus_read_unlock();
@@ -1488,15 +1470,6 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 	} else if (!etm4_arch_supported(drvdata->arch)) {
 		cpus_read_unlock();
 		return -EINVAL;
-	}
-
-	ret = etm4_pm_setup_cpuslocked();
-	cpus_read_unlock();
-
-	/* etm4_pm_setup_cpuslocked() does its own cleanup - exit on error */
-	if (ret) {
-		etmdrvdata[drvdata->cpu] = NULL;
-		return ret;
 	}
 
 	if (etm4_arch_supported(drvdata->arch) == false) {
@@ -1527,14 +1500,14 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 
 	pm_runtime_put(&adev->dev);
 	etmdrvdata[drvdata->cpu] = drvdata;
-	dev_info(dev, "CPU%d: ETM v%d.%d initialized\n",
-		 drvdata->cpu, drvdata->arch >> 4, drvdata->arch & 0xf);
+	dev_info(dev, "CPU%d: ETM v%d.%d initialized\n", drvdata->cpu,
+		 drvdata->arch >> 4, drvdata->arch & 0xf);
 
 	drvdata->tupwr_disable = of_property_read_bool(drvdata->dev->of_node,
-				"qcom,tupwr-disable");
+						       "qcom,tupwr-disable");
 
-	dev_info(dev, "CPU%d: %s initialized\n",
-			drvdata->cpu, (char *)id->data);
+	dev_info(dev, "CPU%d: %s initialized\n", drvdata->cpu,
+		 (char *)id->data);
 
 	if (boot_enable) {
 		coresight_enable(drvdata->csdev);
@@ -1545,22 +1518,20 @@ static int etm4_probe(struct amba_device *adev, const struct amba_id *id)
 
 err_arch_supported:
 	etmdrvdata[drvdata->cpu] = NULL;
-	etm4_pm_clear();
 	return ret;
 }
 
-#define ETM4x_AMBA_ID(pid)			\
-	{					\
-		.id	= pid,			\
-		.mask	= 0x000fffff,		\
+#define ETM4x_AMBA_ID(pid)                                                     \
+	{                                                                      \
+		.id = pid, .mask = 0x000fffff,                                 \
 	}
 
 static const struct amba_id etm4_ids[] = {
-	ETM4x_AMBA_ID(0x000bb95d),		/* Cortex-A53 */
-	ETM4x_AMBA_ID(0x000bb95e),		/* Cortex-A57 */
-	ETM4x_AMBA_ID(0x000bb95a),		/* Cortex-A72 */
-	ETM4x_AMBA_ID(0x000bb959),		/* Cortex-A73 */
-	ETM4x_AMBA_ID(0x000bb9da),		/* Cortex-A35 */
+	ETM4x_AMBA_ID(0x000bb95d), /* Cortex-A53 */
+	ETM4x_AMBA_ID(0x000bb95e), /* Cortex-A57 */
+	ETM4x_AMBA_ID(0x000bb95a), /* Cortex-A72 */
+	ETM4x_AMBA_ID(0x000bb959), /* Cortex-A73 */
+	ETM4x_AMBA_ID(0x000bb9da), /* Cortex-A35 */
 	{},
 };
 
@@ -1572,4 +1543,23 @@ static struct amba_driver etm4x_driver = {
 	.probe		= etm4_probe,
 	.id_table	= etm4_ids,
 };
-builtin_amba_driver(etm4x_driver);
+
+static int __init etm4x_init(void)
+{
+	int ret;
+
+	ret = etm4_pm_setup();
+
+	/* etm4_pm_setup() does its own cleanup - exit on error */
+	if (ret)
+		return ret;
+
+	ret = amba_driver_register(&etm4x_driver);
+	if (ret) {
+		pr_err("Error registering etm4x driver\n");
+		etm4_pm_clear();
+	}
+
+	return ret;
+}
+device_initcall(etm4x_init);
