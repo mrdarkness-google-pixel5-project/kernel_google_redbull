@@ -232,9 +232,9 @@ void tcp_time_wait(struct sock *sk, int state, int timeo);
 #define TCP_INIT_CWND		10
 
 /* Bit Flags for sysctl_tcp_fastopen */
-#define	TFO_CLIENT_ENABLE	1
-#define	TFO_SERVER_ENABLE	2
-#define	TFO_CLIENT_NO_COOKIE	4	/* Data in SYN w/o cookie option */
+#define TFO_CLIENT_ENABLE 3
+#define TFO_SERVER_ENABLE 2
+#define TFO_CLIENT_NO_COOKIE 4 /* Data in SYN w/o cookie option */
 
 /* Accept SYN data w/o any cookie option */
 #define	TFO_SERVER_COOKIE_NOT_REQD	0x200
