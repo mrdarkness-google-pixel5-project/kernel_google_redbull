@@ -253,6 +253,7 @@ static irqreturn_t lqasc_err_int(int irq, void *_port)
 	unsigned long flags;
 	struct uart_port *port = (struct uart_port *)_port;
 	spin_lock_irqsave(&ltq_asc_lock, flags);
+	__raw_writel(ASC_IRNCR_EIR, port->membase + LTQ_ASC_IRNCR);
 	/* clear any pending interrupts */
 	ltq_w32_mask(0,
 		     ASCWHBSTATE_CLRPE | ASCWHBSTATE_CLRFE | ASCWHBSTATE_CLRROE,
