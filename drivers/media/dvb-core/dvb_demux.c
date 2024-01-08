@@ -533,12 +533,12 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 	p = 188 - count;
 
 	cc = buf[3] & 0x0f;
-	if (feed->first_cc)
-		ccok = 1;
-	else
-		ccok = ((feed->cc + 1) & 0x0f) == cc;
-
-	feed->first_cc = 0;
+	ccok = ((feed->cc + 1) & 0x0f) == cc;
+	if (!ccok) {
+		set_buf_flags(feed, DMX_BUFFER_FLAG_DISCONTINUITY_DETECTED);
+		dprintk_sect_loss("missed packet: %d instead of %d!\n", cc,
+				  (feed->cc + 1) & 0x0f);
+	}
 	feed->cc = cc;
 
 	/* PUSI ? */
@@ -786,9 +786,14 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 		else
 			ccok = ((feed->cc + 1) & 0x0f) == cc;
 
+<<<<<<< HEAD
 		/* discard TS packets holding sections with TEI bit set */
 		if (buf[1] & 0x80)
 			return -EINVAL;
+=======
+		cc = buf[3] & 0x0f;
+		ccok = ((feed->cc + 1) & 0x0f) == cc;
+>>>>>>> 0ec5f56
 
 		feed->first_cc = 0;
 		feed->cc = cc;
@@ -814,7 +819,28 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 		 * Discontinuity detected. Reset pusi_seen = 0 to
 		 * stop feeding of suspicious data until next PUSI=1 arrives
 		 */
+<<<<<<< HEAD
 			feed->pusi_seen = 0;
+=======
+
+			feed->pusi_seen = false;
+			dvb_dmx_swfilter_section_new(feed);
+		}
+		feed->cc = cc;
+
+		if (buf[1] & 0x40) {
+			/* PUSI=1 (is set), section boundary is here */
+			if (count > 1 && buf[p] < count) {
+				const u8 *before = &buf[p + 1];
+				u8 before_len = buf[p];
+				const u8 *after = &before[before_len];
+				u8 after_len = count - 1 - before_len;
+
+				dvb_dmx_swfilter_section_copy_dump(feed, before,
+								   before_len);
+				/* before start of new section, set pusi_seen */
+				feed->pusi_seen = true;
+>>>>>>> 0ec5f56
 			dvb_dmx_swfilter_section_new(feed);
 		}
 		feed->cc = cc;
@@ -2277,11 +2303,11 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 #ifdef NOBUFS
 			feed->buffer = NULL;
 #else
-			feed->buffer = vmalloc(feed->buffer_size);
-			if (!feed->buffer) {
-				mutex_unlock(&demux->mutex);
-				return -ENOMEM;
-			}
+				feed->buffer = vmalloc(feed->buffer_size);
+				if (!feed->buffer) {
+					mutex_unlock(&demux->mutex);
+					return -ENOMEM;
+				}
 #endif
 		}
 
@@ -2883,11 +2909,11 @@ static inline int dvb_dmx_swfilter_payload(struct dvb_demux_feed *feed,
 #ifdef NOBUFS
 		dvbdmxfeed->buffer = NULL;
 #else
-		dvbdmxfeed->buffer = vmalloc(dvbdmxfeed->buffer_size);
-		if (!dvbdmxfeed->buffer) {
-			mutex_unlock(&dvbdmx->mutex);
-			return -ENOMEM;
-		}
+			dvbdmxfeed->buffer = vmalloc(dvbdmxfeed->buffer_size);
+			if (!dvbdmxfeed->buffer) {
+				mutex_unlock(&dvbdmx->mutex);
+				return -ENOMEM;
+			}
 #endif
 
 		dvbdmxfeed->state = DMX_STATE_READY;
