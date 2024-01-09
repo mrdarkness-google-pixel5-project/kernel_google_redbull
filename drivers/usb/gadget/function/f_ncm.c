@@ -1322,6 +1322,15 @@ parse_ntb:
 
 	VDBG(port->func.config->cdev, "Parsed NTB with %d frames\n",
 	     dgram_counter);
+
+	to_process -= block_len;
+	if (to_process != 0) {
+		ntb_ptr = (unsigned char *)(ntb_ptr + block_len);
+		goto parse_ntb;
+	}
+
+	dev_consume_skb_any(skb);
+
 	return 0;
 err:
 	skb_queue_purge(list);
