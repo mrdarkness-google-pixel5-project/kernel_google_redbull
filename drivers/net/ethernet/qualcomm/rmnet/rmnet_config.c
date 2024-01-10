@@ -48,18 +48,11 @@ enum {
 };
 
 static const struct nla_policy rmnet_policy[__IFLA_RMNET_EXT_MAX] = {
-	[IFLA_RMNET_MUX_ID] = {
-		.type = NLA_U16
-	},
-	[IFLA_RMNET_FLAGS] = {
-		.len = sizeof(struct ifla_rmnet_flags)
-	},
-	[IFLA_RMNET_DFC_QOS] = {
-		.len = sizeof(struct tcmsg)
-	},
-	[IFLA_RMNET_UL_AGG_PARAMS] = {
-		.len = sizeof(struct rmnet_egress_agg_params)
-	},
+	[IFLA_RMNET_MUX_ID] = { .type = NLA_U16 },
+	[IFLA_RMNET_FLAGS] = { .len = sizeof(struct ifla_rmnet_flags) },
+	[IFLA_RMNET_DFC_QOS] = { .len = sizeof(struct tcmsg) },
+	[IFLA_RMNET_UL_AGG_PARAMS] = { .len = sizeof(
+					       struct rmnet_egress_agg_params) },
 };
 
 int rmnet_is_real_dev_registered(const struct net_device *real_dev)
@@ -69,8 +62,7 @@ int rmnet_is_real_dev_registered(const struct net_device *real_dev)
 EXPORT_SYMBOL(rmnet_is_real_dev_registered);
 
 /* Needs rtnl lock */
-static struct rmnet_port*
-rmnet_get_port_rtnl(const struct net_device *real_dev)
+static struct rmnet_port *rmnet_get_port_rtnl(const struct net_device *real_dev)
 {
 	return rtnl_dereference(real_dev->rx_handler_data);
 }
@@ -108,7 +100,8 @@ static int rmnet_register_real_device(struct net_device *real_dev,
 	if (rmnet_is_real_dev_registered(real_dev)) {
 		port = rmnet_get_port_rtnl(real_dev);
 		if (port->rmnet_mode != RMNET_EPMODE_VND) {
-			NL_SET_ERR_MSG_MOD(extack, "bridge device already exists");
+			NL_SET_ERR_MSG_MOD(extack,
+					   "bridge device already exists");
 			return -EINVAL;
 		}
 
@@ -291,7 +284,7 @@ static void rmnet_force_unassociate_device(struct net_device *dev)
 
 	rmnet_unregister_bridge(dev, port);
 
-	hash_for_each_safe(port->muxed_ep, bkt_ep, tmp_ep, ep, hlnode) {
+	hash_for_each_safe (port->muxed_ep, bkt_ep, tmp_ep, ep, hlnode) {
 		unregister_netdevice_queue(ep->egress_dev, &list);
 		rmnet_vnd_dellink(ep->mux_id, port, ep);
 
@@ -301,7 +294,7 @@ static void rmnet_force_unassociate_device(struct net_device *dev)
 
 	synchronize_rcu();
 
-	hlist_for_each_entry_safe(ep, tmp_ep, &cleanup_list, hlnode) {
+	hlist_for_each_entry_safe (ep, tmp_ep, &cleanup_list, hlnode) {
 		hlist_del(&ep->hlnode);
 		kfree(ep);
 	}
@@ -379,8 +372,7 @@ static int rmnet_changelink(struct net_device *dev, struct nlattr *tb[],
 	if (!dev)
 		return -ENODEV;
 
-	real_dev = __dev_get_by_index(dev_net(dev),
-				      nla_get_u32(tb[IFLA_LINK]));
+	real_dev = __dev_get_by_index(dev_net(dev), nla_get_u32(tb[IFLA_LINK]));
 
 	if (!real_dev || !rmnet_is_real_dev_registered(real_dev))
 		return -ENODEV;
@@ -459,7 +451,7 @@ static int rmnet_fill_info(struct sk_buff *skb, const struct net_device *dev)
 		f.flags = 0;
 	}
 
-	f.mask  = ~0;
+	f.mask = ~0;
 
 	if (nla_put(skb, IFLA_RMNET_FLAGS, sizeof(f), &f))
 		goto nla_put_failure;
@@ -478,17 +470,17 @@ nla_put_failure:
 }
 
 struct rtnl_link_ops rmnet_link_ops __read_mostly = {
-	.kind		= "rmnet",
-	.maxtype	= __IFLA_RMNET_EXT_MAX,
-	.priv_size	= sizeof(struct rmnet_priv),
-	.setup		= rmnet_vnd_setup,
-	.validate	= rmnet_rtnl_validate,
-	.newlink	= rmnet_newlink,
-	.dellink	= rmnet_dellink,
-	.get_size	= rmnet_get_size,
-	.changelink     = rmnet_changelink,
-	.policy		= rmnet_policy,
-	.fill_info	= rmnet_fill_info,
+	.kind = "rmnet",
+	.maxtype = IFLA_RMNET_MAX,
+	.priv_size = sizeof(struct rmnet_priv),
+	.setup = rmnet_vnd_setup,
+	.validate = rmnet_rtnl_validate,
+	.newlink = rmnet_newlink,
+	.dellink = rmnet_dellink,
+	.get_size = rmnet_get_size,
+	.changelink = rmnet_changelink,
+	.policy = rmnet_policy,
+	.fill_info = rmnet_fill_info,
 };
 
 /* Needs either rcu_read_lock() or rtnl lock */
@@ -505,7 +497,7 @@ struct rmnet_endpoint *rmnet_get_endpoint(struct rmnet_port *port, u8 mux_id)
 {
 	struct rmnet_endpoint *ep;
 
-	hlist_for_each_entry_rcu(ep, &port->muxed_ep[mux_id], hlnode) {
+	hlist_for_each_entry_rcu (ep, &port->muxed_ep[mux_id], hlnode) {
 		if (ep->mux_id == mux_id)
 			return ep;
 	}
@@ -514,8 +506,7 @@ struct rmnet_endpoint *rmnet_get_endpoint(struct rmnet_port *port, u8 mux_id)
 }
 EXPORT_SYMBOL(rmnet_get_endpoint);
 
-int rmnet_add_bridge(struct net_device *rmnet_dev,
-		     struct net_device *slave_dev,
+int rmnet_add_bridge(struct net_device *rmnet_dev, struct net_device *slave_dev,
 		     struct netlink_ext_ack *extack)
 {
 	struct rmnet_priv *priv = netdev_priv(rmnet_dev);
@@ -549,8 +540,7 @@ int rmnet_add_bridge(struct net_device *rmnet_dev,
 	return 0;
 }
 
-int rmnet_del_bridge(struct net_device *rmnet_dev,
-		     struct net_device *slave_dev)
+int rmnet_del_bridge(struct net_device *rmnet_dev, struct net_device *slave_dev)
 {
 	struct rmnet_priv *priv = netdev_priv(rmnet_dev);
 	struct net_device *real_dev = priv->real_dev;
@@ -646,9 +636,9 @@ void rmnet_get_packets(void *port, u64 *rx, u64 *tx)
 	*tx = 0;
 	*rx = 0;
 	rcu_read_lock();
-	hash_for_each(((struct rmnet_port *)port)->muxed_ep, bkt, ep, hlnode) {
+	hash_for_each (((struct rmnet_port *)port)->muxed_ep, bkt, ep, hlnode) {
 		priv = netdev_priv(ep->egress_dev);
-		for_each_possible_cpu(cpu) {
+		for_each_possible_cpu (cpu) {
 			ps = per_cpu_ptr(priv->pcpu_stats, cpu);
 			do {
 				start = u64_stats_fetch_begin_irq(&ps->syncp);
@@ -661,7 +651,7 @@ void rmnet_get_packets(void *port, u64 *rx, u64 *tx)
 }
 EXPORT_SYMBOL(rmnet_get_packets);
 
-void  rmnet_set_powersave_format(void *port)
+void rmnet_set_powersave_format(void *port)
 {
 	if (!port)
 		return;
@@ -669,7 +659,7 @@ void  rmnet_set_powersave_format(void *port)
 }
 EXPORT_SYMBOL(rmnet_set_powersave_format);
 
-void  rmnet_clear_powersave_format(void *port)
+void rmnet_clear_powersave_format(void *port)
 {
 	if (!port)
 		return;
@@ -686,8 +676,8 @@ void rmnet_enable_all_flows(void *port)
 		return;
 
 	rcu_read_lock();
-	hash_for_each_rcu(((struct rmnet_port *)port)->muxed_ep,
-			  bkt, ep, hlnode) {
+	hash_for_each_rcu (((struct rmnet_port *)port)->muxed_ep, bkt, ep,
+			   hlnode) {
 		qmi_rmnet_enable_all_flows(ep->egress_dev);
 	}
 	rcu_read_unlock();
@@ -704,8 +694,8 @@ bool rmnet_all_flows_enabled(void *port)
 		return true;
 
 	rcu_read_lock();
-	hash_for_each_rcu(((struct rmnet_port *)port)->muxed_ep,
-			  bkt, ep, hlnode) {
+	hash_for_each_rcu (((struct rmnet_port *)port)->muxed_ep, bkt, ep,
+			   hlnode) {
 		if (!qmi_rmnet_all_flows_enabled(ep->egress_dev)) {
 			ret = false;
 			goto out;
@@ -732,13 +722,12 @@ void rmnet_prepare_ps_bearers(void *port, u8 *num_bearers, u8 *bearer_id)
 	number_bearers_left = *num_bearers;
 
 	rcu_read_lock();
-	hash_for_each_rcu(((struct rmnet_port *)port)->muxed_ep,
-			  bkt, ep, hlnode) {
+	hash_for_each_rcu (((struct rmnet_port *)port)->muxed_ep, bkt, ep,
+			   hlnode) {
 		num_bearers_in_out = number_bearers_left;
-		qmi_rmnet_prepare_ps_bearers(ep->egress_dev,
-					     &num_bearers_in_out,
-					     bearer_id ? bearer_id +
-						current_num_bearers : NULL);
+		qmi_rmnet_prepare_ps_bearers(
+			ep->egress_dev, &num_bearers_in_out,
+			bearer_id ? bearer_id + current_num_bearers : NULL);
 		current_num_bearers += num_bearers_in_out;
 		number_bearers_left -= num_bearers_in_out;
 	}
@@ -771,7 +760,7 @@ int rmnet_get_dlmarker_info(void *port)
 		return 0;
 
 	return ((struct rmnet_port *)port)->data_format &
-		(RMNET_INGRESS_FORMAT_DL_MARKER_V1 |
+	       (RMNET_INGRESS_FORMAT_DL_MARKER_V1 |
 		RMNET_INGRESS_FORMAT_DL_MARKER_V2);
 }
 EXPORT_SYMBOL(rmnet_get_dlmarker_info);
@@ -805,6 +794,4 @@ static void __exit rmnet_exit(void)
 	rmnet_core_genl_deinit();
 }
 
-module_init(rmnet_init)
-module_exit(rmnet_exit)
-MODULE_LICENSE("GPL v2");
+module_init(rmnet_init) module_exit(rmnet_exit) MODULE_LICENSE("GPL v2");
