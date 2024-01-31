@@ -32,7 +32,7 @@
 #include "pwrseq.h"
 #include "sdio_ops.h"
 
-#define cls_dev_to_mmc_host(d)	container_of(d, struct mmc_host, class_dev)
+#define cls_dev_to_mmc_host(d) container_of(d, struct mmc_host, class_dev)
 
 #define MMC_DEVFRQ_DEFAULT_UP_THRESHOLD 35
 #define MMC_DEVFRQ_DEFAULT_DOWN_THRESHOLD 5
@@ -66,9 +66,9 @@ static const struct dev_pm_ops mmc_pm_ops = {
 };
 
 static struct class mmc_host_class = {
-	.name		= "mmc_host",
-	.dev_release	= mmc_host_classdev_release,
-	.pm		= &mmc_pm_ops,
+	.name = "mmc_host",
+	.dev_release = mmc_host_classdev_release,
+	.pm = &mmc_pm_ops,
 };
 
 int mmc_register_host_class(void)
@@ -153,9 +153,9 @@ int mmc_retune(struct mmc_host *host)
 	else
 		return 0;
 
-	if (!host->need_retune || host->doing_retune || !host->card
-			|| mmc_card_hs400es(host->card)
-			|| (host->ios.clock <= MMC_HIGH_DDR_MAX_DTR))
+	if (!host->need_retune || host->doing_retune || !host->card ||
+	    mmc_card_hs400es(host->card) ||
+	    (host->ios.clock <= MMC_HIGH_DDR_MAX_DTR))
 		return 0;
 
 	host->need_retune = 0;
@@ -177,7 +177,7 @@ int mmc_retune(struct mmc_host *host)
 	 * This is handled properly in sdhci-msm.c from msm-5.4 onwards.
 	 */
 	if (host->card->mmc_avail_type & EXT_CSD_CARD_TYPE_HS400 &&
-		host->ios.bus_width == MMC_BUS_WIDTH_8)
+	    host->ios.bus_width == MMC_BUS_WIDTH_8)
 		mmc_set_timing(host, MMC_TIMING_MMC_HS400);
 
 	err = mmc_execute_tuning(host->card);
@@ -264,8 +264,8 @@ int mmc_of_parse(struct mmc_host *host)
 	case 1:
 		break;
 	default:
-		dev_err(host->parent,
-			"Invalid \"bus-width\" value %u!\n", bus_width);
+		dev_err(host->parent, "Invalid \"bus-width\" value %u!\n",
+			bus_width);
 		return -EINVAL;
 	}
 
@@ -387,7 +387,8 @@ int mmc_of_parse(struct mmc_host *host)
 		host->caps2 |= MMC_CAP2_NO_MMC;
 
 	/* Must be after "non-removable" check */
-	if (device_property_read_u32(dev, "fixed-emmc-driver-type", &drv_type) == 0) {
+	if (device_property_read_u32(dev, "fixed-emmc-driver-type",
+				     &drv_type) == 0) {
 		if (host->caps & MMC_CAP_NONREMOVABLE)
 			host->fixed_drv_type = drv_type;
 		else
@@ -476,8 +477,8 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
 }
 EXPORT_SYMBOL(mmc_alloc_host);
 
-static ssize_t enable_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t enable_show(struct device *dev, struct device_attribute *attr,
+			   char *buf)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 
@@ -487,8 +488,8 @@ static ssize_t enable_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", mmc_can_scale_clk(host));
 }
 
-static ssize_t enable_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t enable_store(struct device *dev, struct device_attribute *attr,
+			    const char *buf, size_t count)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 	unsigned long value;
@@ -507,7 +508,7 @@ static ssize_t enable_store(struct device *dev,
 		host->clk_scaling.state = MMC_LOAD_HIGH;
 		/* Set to max. frequency when disabling */
 		mmc_clk_update_freq(host, host->card->clk_scaling_highest,
-					host->clk_scaling.state);
+				    host->clk_scaling.state);
 	} else if (value) {
 		/* Unmask host capability and resume scaling */
 		host->caps2 |= MMC_CAP2_CLK_SCALE;
@@ -523,7 +524,7 @@ static ssize_t enable_store(struct device *dev,
 }
 
 static ssize_t up_threshold_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				 struct device_attribute *attr, char *buf)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 
@@ -533,9 +534,10 @@ static ssize_t up_threshold_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", host->clk_scaling.upthreshold);
 }
 
-#define MAX_PERCENTAGE	100
+#define MAX_PERCENTAGE 100
 static ssize_t up_threshold_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+				  struct device_attribute *attr,
+				  const char *buf, size_t count)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 	unsigned long value;
@@ -545,13 +547,13 @@ static ssize_t up_threshold_store(struct device *dev,
 
 	host->clk_scaling.upthreshold = value;
 
-	pr_debug("%s: clkscale_up_thresh set to %lu\n",
-			mmc_hostname(host), value);
+	pr_debug("%s: clkscale_up_thresh set to %lu\n", mmc_hostname(host),
+		 value);
 	return count;
 }
 
 static ssize_t down_threshold_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				   struct device_attribute *attr, char *buf)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 
@@ -563,7 +565,8 @@ static ssize_t down_threshold_show(struct device *dev,
 }
 
 static ssize_t down_threshold_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+				    struct device_attribute *attr,
+				    const char *buf, size_t count)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 	unsigned long value;
@@ -573,13 +576,13 @@ static ssize_t down_threshold_store(struct device *dev,
 
 	host->clk_scaling.downthreshold = value;
 
-	pr_debug("%s: clkscale_down_thresh set to %lu\n",
-			mmc_hostname(host), value);
+	pr_debug("%s: clkscale_down_thresh set to %lu\n", mmc_hostname(host),
+		 value);
 	return count;
 }
 
 static ssize_t polling_interval_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				     struct device_attribute *attr, char *buf)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 
@@ -591,7 +594,8 @@ static ssize_t polling_interval_show(struct device *dev,
 }
 
 static ssize_t polling_interval_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+				      struct device_attribute *attr,
+				      const char *buf, size_t count)
 {
 	struct mmc_host *host = cls_dev_to_mmc_host(dev);
 	unsigned long value;
@@ -602,7 +606,7 @@ static ssize_t polling_interval_store(struct device *dev,
 	host->clk_scaling.polling_delay_ms = value;
 
 	pr_debug("%s: clkscale_polling_delay_ms set to %lu\n",
-			mmc_hostname(host), value);
+		 mmc_hostname(host), value);
 	return count;
 }
 
@@ -666,8 +670,8 @@ int mmc_add_host(struct mmc_host *host)
 #endif
 
 #ifdef CONFIG_MMC_IPC_LOGGING
-	host->ipc_log_ctxt = ipc_log_context_create(NUM_LOG_PAGES,
-					dev_name(&host->class_dev), 0);
+	host->ipc_log_ctxt = ipc_log_context_create(
+		NUM_LOG_PAGES, dev_name(&host->class_dev), 0);
 	if (!host->ipc_log_ctxt)
 		pr_err("%s: Error getting ipc_log_ctxt\n", __func__);
 #endif
@@ -675,7 +679,7 @@ int mmc_add_host(struct mmc_host *host)
 	err = sysfs_create_group(&host->class_dev.kobj, &clk_scaling_attr_grp);
 	if (err)
 		pr_err("%s: failed to create clk scale sysfs group with err %d\n",
-				__func__, err);
+		       __func__, err);
 
 	mmc_start_host(host);
 	if (!(host->pm_flags & MMC_PM_IGNORE_PM_NOTIFY))
@@ -726,6 +730,7 @@ EXPORT_SYMBOL(mmc_remove_host);
 void mmc_free_host(struct mmc_host *host)
 {
 	cancel_delayed_work_sync(&host->detect);
+	mmc_crypto_free_host(host);
 	mmc_pwrseq_free(host);
 	put_device(&host->class_dev);
 }
