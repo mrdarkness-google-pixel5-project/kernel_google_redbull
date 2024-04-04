@@ -1,0 +1,68 @@
+name: Overdose Kernel Build CI
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ GITHUB.TOKEN }}
+
+jobs:
+  build-redfin-clang:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup repo
+      run: | 
+        sudo apt update -y
+        sudo apt install -y repo elfutils libarchive-tools
+    - name: Repo sync
+      run: |
+        repo init -u https://github.com/mrdarkness-google-pixel5-project/android_kernel_manifest -b android-msm-redbull-4.19-android14 --depth=1
+        repo sync --no-tags --no-clone-bundle -j$(nproc --all)
+    - name: KernelSU sync
+      run: |
+        cd private/msm-google
+        git submodule update --init --recursive
+    - name: Fetch Clang
+      run: |
+        rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
+        mkdir -p prebuilts-master/clang/host/linux-x86/clang-r416183b/
+        wget http://sft.if.usp.br/sft/pub/tools/llvm/files/llvm-18.1.2-x86_64.tar.gz -O clang.tar.gz
+        tar -xf clang.tar.gz -C prebuilts-master/clang/host/linux-x86/clang-r416183b --strip-components=1
+    - name: Clang Build
+      run: |
+        sed -i s/build-user/mrdarknessk/g build/_setup_env.sh
+        sed -i s/build-host/github-actions/g build/_setup_env.sh
+        ./build_redbull.sh
+    - name: Create zip
+      run: |
+        mkdir output
+        cp out/android-msm-pixel-4.19/dist/boot.img output/
+        cp out/msm-5.4-lahaina-nqgki/dist/vendor_boot.img output/
+        cp out/msm-5.4-lahaina-nqgki/dist/dtbo.img output/
+    - uses: actions/upload-artifact@main
+      with:
+       name: release
+       path: output/*.img
+
+  publish-release:
+    needs: [build-redfin-clang]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Restoring artifacts
+      uses: actions/download-artifact@main
+      with:
+        name: release
+        path: ${{ github.workspace }}
+    - name: Release Tag
+      id: release_tag
+      run: echo "TAG_NAME=$(date -u +%d%m%Y%I%M)" >> $GITHUB_ENV
+    - name: Create Release
+      run: gh release create ${{ env.TAG_NAME }} --generate-notes -p *.img
+    - name: Release Check
+      run: gh release list -L 1 > list
+    - name: Prepare release message
+      run: gh release view $(cat list | awk '{ print substr( $0, 1, length($0)-45 ) }') > release-text
